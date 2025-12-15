@@ -1,154 +1,140 @@
-# 更新日志 | Changelog
+# Changelog | 更新日志
 
+All notable changes to this project will be documented in this file.
 所有值得注意的项目更改都将记录在此文件中。
 
 ---
 
 ## [1.1.0] - 2025-12-01
 
-### ✨ 新增功能
+### ✨ New Features | 新增功能
 
-#### UI/UX 增强
-- **深绿色主题侧边栏**
-  - 垂直渐变效果（#047857 → #065f46 → #064e3b）
-  - 半透明绿色边框
-  - 深度阴影效果
+#### UI/UX Enhancements | UI/UX 增强
+- **Dark Green Sidebar | 深绿色主题侧边栏**
+  - Vertical gradient effect | 垂直渐变效果 (#047857 → #065f46 → #064e3b)
+  - Semi-transparent border & Deep shadow | 半透明绿色边框 & 深度阴影效果
   
-- **柔和绿色背景**
-  - 绿色渐变主背景
-  - 几何图案叠加层（交叉45度斜线）
-  - 固定定位，所有页面生效
+- **Soft Green Background | 柔和绿色背景**
+  - Geometric pattern overlay | 几何图案叠加层
+  - Fixed positioning | 固定定位，所有页面生效
   
-- **优化登录界面**
-  - 三个角色快速选择卡片（Admin/Teacher/Student）
-  - 统一的Lucide图标风格
-  - 浅灰色选中状态（#f1f5f9）
-  - 宽度调整为580px，更适合桌面端
+- **Optimized Login | 优化登录界面**
+  - Quick role selection cards | 三个角色快速选择卡片 (Admin/Teacher/Student)
+  - Unified Lucide icons style | 统一的Lucide图标风格
+  - Light gray selection state | 浅灰色选中状态
 
-#### 角色权限系统
-- **三角色实现**
-  - 👨‍💼 Admin（administrator）- 所有功能权限
-  - 👨‍🏫 Teacher（instructor）- 5个功能权限
-  - 👨‍🎓 Student（learner）- 3个基础功能权限
+#### Role-Based System | 角色权限系统
+- **Three Roles Implementation | 三角色实现**
+  - **Admin**: Full access permissions | 所有功能权限
+  - **Teacher**: 5 functional permissions | 5个功能权限
+  - **Student**: 3 basic functional permissions | 3个基础功能权限
   
-- **权限控制**
-  - 基于角色的菜单过滤
-  - Sidebar动态显示菜单项
-  - 角色信息本地存储
-  - 登录状态持久化
+- **Permission Control | 权限控制**
+  - Menu filtering based on roles | 基于角色的菜单过滤
+  - Local storage for role info | 角色信息本地存储
 
-#### AI助手功能扩展
-- **文件上传**
-  - 支持PDF、PPT、PPTX、DOC、DOCX格式
-  - 文件信息自动分析展示
-  - 上传状态指示器
+#### AI Assistant Extensions | AI助手功能扩展
+- **File Upload | 文件上传**
+  - Support PDF, PPT, DOC formats | 支持多种文档格式
+  - Auto-analysis display | 文件信息自动分析展示
   
-- **思维导图生成**
-  - 可视化课程结构
-  - 中心节点 + 分支设计
-  - 自动布局算法
+- **Mind Map Generation | 思维导图生成**
+  - Visual course structure | 可视化课程结构
+  - Auto-layout algorithm | 自动布局算法
   
-- **课件分析**
-  - 关键主题提取
-  - 学习目标分析
-  - 活动建议推荐
+- **Courseware Analysis | 课件分析**
+  - Key topic extraction | 关键主题提取
+  - Learning objective analysis | 学习目标分析
 
-### 🎨 样式改进
+### 🎨 Style Improvements | 样式改进
 
-#### 侧边栏
-- 深绿色渐变背景替代浅灰色
-- Logo图标半透明设计 + 发光效果
-- 菜单项白色/半透明白色文字
-- 选中状态：30%绿色背景 + 白色文字
-- 底部分隔线：10%白色透明
+#### Sidebar | 侧边栏
+- New gradient background | 深绿色渐变背景替代浅灰色
+- Translucent logo with glow | Logo图标半透明设计 + 发光效果
+- Selected state: 30% green bg | 选中状态：30%绿色背景 + 白色文字
 
-#### 主内容区
-- 浅绿色背景（75%不透明度）
-- 与深绿侧边栏形成对比
-- 白色卡片更突出
+#### Main Content | 主内容区
+- Light green background (75% opacity) | 浅绿色背景（75%不透明度）
+- Enhanced white cards | 白色卡片更突出
 
-#### 图标系统
-- 全部使用Lucide Icons
-- UserCog（管理员）、GraduationCap（教师）、User（学生）
-- 移除emoji图标，统一风格
+#### Icons | 图标系统
+- Unified Lucide Icons | 全部使用Lucide Icons
+- Removed emoji icons | 移除emoji图标，统一风格
 
-### 🔧 技术改进
+### 🔧 Technical Improvements | 技术改进
 
-- **完全移除TypeScript**
-  - `package.json` 删除TypeScript依赖
-  - 所有 `.ts` 文件转换为 `.js`
-  - 移除类型注解
+- **Removed TypeScript | 完全移除TypeScript**
+  - All `.ts` files converted to `.js` | 所有 `.ts` 文件转换为 `.js`
+  - Removed type annotations | 移除类型注解
   
-- **State管理增强**
-  - `auth.js` 添加角色枚举
-  - 新增 `userRole`、`isAdmin`、`isTeacher`、`isStudent` 计算属性
-  - localStorage存储用户信息
+- **State Management | State管理增强**
+  - Added role enums in `auth.js` | `auth.js` 添加角色枚举
+  - Added computed properties for roles | 新增角色计算属性
 
-### 🐛 Bug修复
+### 🐛 Bug Fixes | Bug修复
 
-- 修复登录后token未保存问题
-- 修复样式文件损坏问题
-- 修复Sidebar菜单权限过滤逻辑
-- 修复CSS变量引用错误
+- Fixed token persistence issue | 修复登录后token未保存问题
+- Fixed style file corruption | 修复样式文件损坏问题
+- Fixed sidebar permission logic | 修复Sidebar菜单权限过滤逻辑
+- Fixed CSS variable references | 修复CSS变量引用错误
 
 ---
 
 ## [1.0.0] - 2025-11-26
 
-### ✨ 初始发布
+### ✨ Initial Release | 初始发布
 
-#### 核心功能
-- ✅ 用户认证系统（登录/登出）
-- ✅ 仪表板页面（统计卡片、通知列表）
-- ✅ 作业管理模块
-- ✅ 通知公告模块
-- ✅ 班级管理模块
-- ✅ AI教学助手
-- ✅ 设置页面
+#### Core Features | 核心功能
+- Authentication System | 用户认证系统
+- Dashboard & Notices | 仪表板页面 & 通知公告模块
+- Assignment Management | 作业管理模块
+- Class Management | 班级管理模块
+- AI Teaching Assistant | AI教学助手
+- Settings Page | 设置页面
 
-#### 技术架构
-- **前端**: Vue 3 + Vite + Pinia + Vue Router
-- **后端**: Flask + SQLAlchemy（框架搭建）
-- **图标**: Lucide Vue Next
-- **样式**: 原生CSS + CSS Variables
+#### Tech Stack | 技术架构
+- **Frontend**: Vue 3 + Vite + Pinia + Vue Router
+- **Backend**: Flask + SQLAlchemy
+- **Icons**: Lucide Vue Next
+- **Styles**: Native CSS + Variables
 
-#### UI设计
-- 现代化卡片式布局
-- 响应式设计
-- 统一的绿色主题
-- Sidebar + Header布局
+#### UI Design | UI设计
+- Modern Card Layout | 现代化卡片式布局
+- Responsive Design | 响应式设计
+- Unified Green Theme | 统一的绿色主题
 
 ---
 
-## 版本计划
+## Versions | 版本计划
 
-### [1.2.0] - 计划中
+### [1.2.0] - Planned | 计划中
 
-#### 功能
-- [ ] 后端API完整实现
-- [ ] 数据库集成
-- [ ] 真实文件上传
-- [ ] 实时通知系统
+#### Features | 功能
+- [ ] Complete Backend API | 后端API完整实现
+- [ ] Database Integration | 数据库集成
+- [ ] Real File Upload | 真实文件上传
+- [ ] Real-time Notifications | 实时通知系统
 
-#### 优化
-- [ ] 移动端适配优化
-- [ ] 暗黑模式主题
-- [ ] 性能优化
-- [ ] SEO优化
-
----
-
-## 类型说明
-
-- `feat`: 新功能
-- `fix`: Bug修复
-- `docs`: 文档更新
-- `style`: 样式改进
-- `refactor`: 代码重构
-- `perf`: 性能优化
-- `test`: 测试相关
-- `chore`: 构建/工具链
+#### Improvements | 优化
+- [ ] Mobile Optimization | 移动端适配优化
+- [ ] Dark Mode | 暗黑模式主题
+- [ ] Performance Tuning | 性能优化
+- [ ] SEO Optimization | SEO优化
 
 ---
 
-**注**: 版本遵循 [语义化版本](https://semver.org/lang/zh-CN/)
+## Types | 类型说明
+
+- `feat`: New feature | 新功能
+- `fix`: Bug fix | Bug修复
+- `docs`: Documentation | 文档更新
+- `style`: Styles | 样式改进
+- `refactor`: Refactoring | 代码重构
+- `perf`: Performance | 性能优化
+- `test`: Tests | 测试相关
+- `chore`: Build/Tools | 构建/工具链
+
+---
+
+**Note**: SemVer is followed.
+**注**: 版本遵循语义化版本。
