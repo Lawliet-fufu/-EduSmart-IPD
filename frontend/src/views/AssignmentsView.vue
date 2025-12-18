@@ -1,17 +1,226 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { BookOpen, Plus, Calendar, Clock, CheckCircle, AlertCircle } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { BookOpen, Plus, Calendar } from 'lucide-vue-next'
+import { getAssignments, createAssignment, updateAssignment, deleteAssignment } from '../api/assignments.js'
 
 const activeFilter = ref('all')
 const showCreateModal = ref(false)
+const assignments = ref([])
+const isLoading = ref(false)
+const error = ref('')
 
-const assignments = ref([
-  { id: 1, title: 'Math Homework - Chapter 5', subject: 'Mathematics', dueDate: '2024-02-15', status: 'pending', students: 28, completed: 12 },
-  { id: 2, title: 'English Essay - My Dream', subject: 'English', dueDate: '2024-02-12', status: 'grading', students: 28, completed: 28 },
-  { id: 3, title: 'Science Project Proposal', subject: 'Science', dueDate: '2024-02-20', status: 'pending', students: 28, completed: 5 },
-  { id: 4, title: 'History Timeline Assignment', subject: 'History', dueDate: '2024-02-10', status: 'completed', students: 28, completed: 28 },
-  { id: 5, title: 'Geography Map Drawing', subject: 'Geography', dueDate: '2024-02-18', status: 'pending', students: 28, completed: 8 }
-])
+
+// Subject mapping: Enumerated values returned by the backend -> Display on the frontend (in English)
+const subjectLabelMap = {
+  'chinese': 'Chinese',
+  'math': 'Math',
+  'english': 'English'
+}
+
+const subjectOptions = [
+  { value: 'math', label: 'Math' },
+  { value: 'chinese', label: 'Chinese' },
+  { value: 'english', label: 'English' }
+]
+
+const statusOptions = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'grading', label: 'Grading' },
+  { value: 'completed', label: 'Completed' }
+]
+
+// Create job form data
+const newAssignment = ref({
+  title: '',
+  subject: 'math',
+  description: '',
+  dueDate: '',
+  class_id: null
+})
+
+// Edit the job data
+const editingAssignment = ref(null)
+
+// Create computed properties for each field (for use with v-model)
+const formTitle = computed({
+  get: () => editingAssignment.value?.title || newAssignment.value.title || '',
+  set: (val) => {
+    if (editingAssignment.value) {
+      editingAssignment.value.title = val
+    } else {
+      newAssignment.value.title = val
+    }
+  }
+})
+
+const formSubject = computed({
+  get: () => editingAssignment.value?.subject || newAssignment.value.subject || 'math',
+  set: (val) => {
+    if (editingAssignment.value) {
+      editingAssignment.value.subject = val
+    } else {
+      newAssignment.value.subject = val
+    }
+  }
+})
+
+const formDescription = computed({
+  get: () => editingAssignment.value?.description || newAssignment.value.description || '',
+  set: (val) => {
+    if (editingAssignment.value) {
+      editingAssignment.value.description = val
+    } else {
+      newAssignment.value.description = val
+    }
+  }
+})
+
+const formDueDate = computed({
+  get: () => editingAssignment.value?.dueDate || newAssignment.value.dueDate || '',
+  set: (val) => {
+    if (editingAssignment.value) {
+      editingAssignment.value.dueDate = val
+    } else {
+      newAssignment.value.dueDate = val
+    }
+  }
+})
+
+const formStatus = computed({
+  get: () => editingAssignment.value?.status || newAssignment.value.status || 'pending',
+  set: (val) => {
+    if (editingAssignment.value) {
+      editingAssignment.value.status = val
+    } else {
+      newAssignment.value.status = val
+    }
+  }
+})
+
+
+
+// Load the job list
+const loadAssignments = async () => {
+  isLoading.value = true
+  error.value = ''
+  try {
+    const filters = {}
+    if (activeFilter.value !== 'all') {
+      filters.status = activeFilter.value
+    }
+    const data = await getAssignments(filters)
+    assignments.value = data.map(item => ({
+      ...item,
+      subjectLabel: subjectLabelMap[item.subject] || item.subject
+    }))
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Failed to load assignments'
+    console.error('Error loading assignments:', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 创建作业
+const handleCreateAssignment = async () => {
+  if (!newAssignment.value.title || !newAssignment.value.subject) {
+    error.value = 'Title and subject are required'
+    return
+  }
+
+  isLoading.value = true
+  error.value = ''
+  try {
+    await createAssignment({ ...newAssignment.value })
+    showCreateModal.value = false
+    // 重置表单
+    newAssignment.value = {
+      title: '',
+      subject: 'math',
+      description: '',
+      dueDate: '',
+      status: 'pending',
+      class_id: null
+    }
+    await loadAssignments()
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Failed to create assignment'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Edit the assignment
+const handleEditAssignment = (assignment) => {
+  editingAssignment.value = {
+    ...assignment,
+    subject: assignment.subject // Keep Chinese display
+  }
+  showCreateModal.value = true
+}
+
+// Update the assignment
+const handleUpdateAssignment = async () => {
+  if (!editingAssignment.value.title || !editingAssignment.value.subject) {
+    error.value = 'Title and subject are required'
+    return
+  }
+
+  isLoading.value = true
+  error.value = ''
+  try {
+    await updateAssignment(editingAssignment.value.id, { ...editingAssignment.value })
+    showCreateModal.value = false
+    editingAssignment.value = null
+    await loadAssignments()
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Failed to update assignment'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Delete the assignment
+const handleDeleteAssignment = async (id) => {
+  if (!confirm('Are you sure you want to delete this assignment?')) {
+    return
+  }
+
+  isLoading.value = true
+  error.value = ''
+  try {
+    await deleteAssignment(id)
+    await loadAssignments()
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Failed to delete assignment'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Save the assignment (create or update)
+const handleSaveAssignment = () => {
+  if (editingAssignment.value) {
+    handleUpdateAssignment()
+  } else {
+    handleCreateAssignment()
+  }
+}
+
+// Close the modal window
+const closeModal = () => {
+  showCreateModal.value = false
+  editingAssignment.value = null
+  newAssignment.value = {
+    title: '',
+    subject: 'math',
+    description: '',
+    dueDate: '',
+    status: 'pending',
+    class_id: null
+  }
+  error.value = ''
+}
 
 const filteredAssignments = computed(() => {
   if (activeFilter.value === 'all') return assignments.value
@@ -35,6 +244,11 @@ const getStatusText = (status) => {
   }
   return texts[status] || status
 }
+
+// Loading data during component mounting
+onMounted(() => {
+  loadAssignments()
+})
 </script>
 
 <template>
@@ -82,15 +296,25 @@ const getStatusText = (status) => {
       </button>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="isLoading && assignments.length === 0" class="loading-state">
+      <p>Loading assignments...</p>
+    </div>
+
+    <!-- Error Message -->
+    <div v-if="error" class="error-banner">
+      {{ error }}
+    </div>
+
     <!-- Assignments Grid -->
-    <div class="assignments-grid">
+    <div v-if="!isLoading || assignments.length > 0" class="assignments-grid">
       <div v-for="assignment in filteredAssignments" :key="assignment.id" class="assignment-card">
         <div class="card-header">
           <div class="title-section">
             <BookOpen :size="20" class="subject-icon" />
             <div>
               <h3>{{ assignment.title }}</h3>
-              <span class="subject">{{ assignment.subject }}</span>
+              <span class="subject">{{ assignment.subjectLabel || subjectLabelMap[assignment.subject] || assignment.subject }}</span>
             </div>
           </div>
           <span class="status-badge" :style="{ backgroundColor: getStatusColor(assignment.status) }">
@@ -118,18 +342,88 @@ const getStatusText = (status) => {
         </div>
 
         <div class="card-actions">
-          <button class="action-btn">View Details</button>
-          <button class="action-btn secondary">Edit</button>
+          <button class="action-btn secondary" @click="handleEditAssignment(assignment)">Edit</button>
+          <button class="action-btn danger" @click="handleDeleteAssignment(assignment.id)">Delete</button>
         </div>
       </div>
     </div>
 
-    <!-- Create Modal Placeholder -->
-    <div v-if="showCreateModal" class="modal-overlay" @click="showCreateModal = false">
+    <!-- Create/Edit Modal -->
+    <div v-if="showCreateModal" class="modal-overlay" @click="closeModal">
       <div class="modal-content" @click.stop>
-        <h2>Create New Assignment</h2>
-        <p class="modal-message">Assignment creation form will be implemented here.</p>
-        <button @click="showCreateModal = false" class="close-btn">Close</button>
+        <h2>{{ editingAssignment ? 'Edit Assignment' : 'Create New Assignment' }}</h2>
+        
+        <form @submit.prevent="handleSaveAssignment" class="assignment-form">
+          <div class="form-group">
+            <label>Title *</label>
+            <input 
+              v-model="formTitle"
+              type="text" 
+              placeholder="Enter assignment title"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Subject *</label>
+            <select 
+              v-model="formSubject"
+              required
+            >
+              <option 
+                v-for="option in subjectOptions" 
+                :key="option.value" 
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Description</label>
+            <textarea 
+              v-model="formDescription"
+              placeholder="Enter assignment description"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Due Date</label>
+            <input 
+              v-model="formDueDate"
+              type="date"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Status *</label>
+            <select 
+              v-model="formStatus"
+              required
+            >
+              <option 
+                v-for="option in statusOptions" 
+                :key="option.value" 
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+
+          <div v-if="error" class="form-error">
+            {{ error }}
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" @click="closeModal" class="btn-secondary">Cancel</button>
+            <button type="submit" :disabled="isLoading" class="btn-primary">
+              {{ isLoading ? 'Saving...' : (editingAssignment ? 'Update' : 'Create') }}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -378,5 +672,117 @@ const getStatusText = (status) => {
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
   font-weight: 600;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-muted);
+}
+
+.error-banner {
+  background-color: #fef2f2;
+  color: #ef4444;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #fecaca;
+}
+
+.assignment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  color: var(--text-main);
+  background-color: var(--bg-body);
+  transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.form-error {
+  color: #ef4444;
+  font-size: 0.875rem;
+  background-color: #fef2f2;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-body);
+  color: var(--text-main);
+}
+
+.action-btn.danger {
+  background-color: #ef4444;
+  color: white;
+}
+
+.action-btn.danger:hover {
+  background-color: #dc2626;
 }
 </style>

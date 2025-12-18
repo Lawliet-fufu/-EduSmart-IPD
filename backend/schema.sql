@@ -93,3 +93,26 @@ CREATE TABLE IF NOT EXISTS user_preferences (
   CONSTRAINT fk_user_preferences__user FOREIGN KEY (user_id)
       REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+-- ===============
+-- assignments (Assigned to classes, published by teachers)
+-- ===============
+CREATE TABLE IF NOT EXISTS assignments (
+assignment_id  BIGINT AUTO_INCREMENT,
+title          VARCHAR(200) NOT NULL,
+subject        ENUM('chinese','math','english') NOT NULL,
+description    TEXT,
+due_date       DATE,
+status         ENUM('pending','grading','completed') DEFAULT 'pending',
+class_id       BIGINT NULL,
+teacher_id     BIGINT NULL,
+created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+updated_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+CONSTRAINT pk_assignments PRIMARY KEY (assignment_id),
+CONSTRAINT fk_assignments__class FOREIGN KEY (class_id)
+REFERENCES classes(class_id) ON UPDATE CASCADE ON DELETE CASCADE,
+CONSTRAINT fk_assignments__teacher FOREIGN KEY (teacher_id)
+REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE SET NULL,
+INDEX idx_assignments__class_id (class_id),
+INDEX idx_assignments__teacher_id (teacher_id)
+) ENGINE=InnoDB;
