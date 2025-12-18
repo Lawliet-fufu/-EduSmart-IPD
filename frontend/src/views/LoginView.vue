@@ -21,25 +21,26 @@ const demoAccounts = [
 ]
 
 const selectAccount = (account) => {
+  // Only highlight the selections, no longer automatically fill in the form, instead, input manually.
   selectedAccount.value = account.username
-  username.value = account.username
-  password.value = '123456'
 }
 
 const handleLogin = async () => {
   error.value = ''
   isLoading.value = true
-  
-  // Simulate network delay
-  setTimeout(() => {
-    const success = authStore.login(username.value, password.value)
-    if (success) {
+
+  try {
+    const result = await authStore.login(username.value, password.value)
+    if (result.success) {
       router.push('/')
     } else {
-      error.value = 'Invalid username or password'
+      error.value = result.message || 'Invalid username or password'
     }
+  } catch (err) {
+    error.value = 'Login failed. Please try again.'
+  } finally {
     isLoading.value = false
-  }, 800)
+  }
 }
 </script>
 
@@ -58,12 +59,8 @@ const handleLogin = async () => {
       <div class="demo-accounts">
         <p class="demo-label">Quick Login (Demo Accounts)</p>
         <div class="accounts-grid">
-          <div 
-            v-for="account in demoAccounts" 
-            :key="account.username"
-            @click="selectAccount(account)"
-            :class="['account-card', { 'selected': selectedAccount === account.username }]"
-          >
+          <div v-for="account in demoAccounts" :key="account.username" @click="selectAccount(account)"
+            :class="['account-card', { 'selected': selectedAccount === account.username }]">
             <component :is="account.icon" :size="32" class="account-icon-svg" />
             <div class="account-info">
               <span class="account-role">{{ account.role }}</span>
@@ -71,7 +68,6 @@ const handleLogin = async () => {
             </div>
           </div>
         </div>
-        <p class="demo-hint">Password: <code>123456</code></p>
       </div>
 
       <div class="divider">
@@ -83,12 +79,7 @@ const handleLogin = async () => {
           <label>Username</label>
           <div class="input-wrapper">
             <User :size="18" class="input-icon" />
-            <input 
-              v-model="username" 
-              type="text" 
-              placeholder="Enter your username"
-              required
-            />
+            <input v-model="username" type="text" placeholder="Enter your username" required />
           </div>
         </div>
 
@@ -96,12 +87,7 @@ const handleLogin = async () => {
           <label>Password</label>
           <div class="input-wrapper">
             <Lock :size="18" class="input-icon" />
-            <input 
-              v-model="password" 
-              type="password" 
-              placeholder="Enter your password"
-              required
-            />
+            <input v-model="password" type="password" placeholder="Enter your password" required />
           </div>
         </div>
 
@@ -115,9 +101,9 @@ const handleLogin = async () => {
           <ArrowRight v-if="!isLoading" :size="18" />
         </button>
       </form>
-      
+
       <div class="login-footer">
-        <p>Demo Credentials: admin / 123456</p>
+        <p>Please sign in with your account credentials. For assistance, contact your administrator.</p>
       </div>
     </div>
   </div>
