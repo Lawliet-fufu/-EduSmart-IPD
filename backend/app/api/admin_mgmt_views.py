@@ -381,7 +381,7 @@ def delete_class(class_id, *args, **kwargs):
         # 2) Delete assignments related to the class
         Assignment.query.filter_by(class_id=class_id).delete()
         
-        # 3) 删除该班级下的学生档案（解除关系）
+        # 3) Delete the student records of this class (break the relationship)
         StudentProfile.query.filter_by(class_id=class_id).delete()
         
         # 4) Delete the class itself
@@ -725,7 +725,7 @@ def update_student_grades(class_id, student_id, *args, **kwargs):
         if subject in data:
             score = data[subject]
             # Allow updating to None (delete grade)
-            # 查找是否已有该科目的成绩
+            # Check if there are already grades for this subject
             existing_grade = Grade.query.filter_by(
                 student_id=profile.user_id,
                 subject=subject,
@@ -794,7 +794,76 @@ def get_users(*args, **kwargs):
 @role_required('admin', 'teacher')
 def get_class_grade_distribution(class_id, *args, **kwargs):
     """Return the grade distribution for a class (0-100, one bucket per point). Includes four curves for Chinese, Math, English, and Average."""
-    pass
+    from math import floor
+
+    current_user_id = kwargs.get('current_user_id')
+    current_user_role = kwargs.get('current_user_role')
+
+    class_obj = Class.query.get_or_404(class_id)
+    # Permission: Teachers can only view their own classes.
+    if current_user_role == 'teacher' and class_obj.teacher_id != current_user_id:
+        return jsonify({'message': 'You can only view your own classes'}), 403
+
+    term = request.args.get('term', 'current')
+
+    # The list of all student user_ids in this class
+    profiles = StudentProfile.query.filter_by(class_id=class_id).all()
+    student_ids = [p.user_id for p in profiles]
+    if not student_ids:
+        zeros = [0] * 101
+        return jsonify({
+            'labels': list(range(101)),
+            'chinese': zeros,
+            'math': zeros,
+            'english': zeros,
+            'average': zeros
+        }), 200
+
+    # Check the grades for this semester
+    grades = Grade.query.filter(Grade.student_id.in_(student_ids), Grade.term == term).all()
+
+    # The organization is represented as {student_id: {subject: score}}
+    stu_scores = {}
+    for g in grades:
+        try:
+            score_val = float(g.score) if g.score is not None else None
+        except Exception:
+            score_val = None
+        if score_val is None:
+            continue
+        # Trim to 0-10
+        score_val = max(0.0, min(100.0, score_val))
+        stu_scores.setdefault(g.student_id, {})[g.subject] = score_val
+
+    def empty_bucket():
+        return [0] * 101
+
+    buckets = {
+        'chinese': empty_bucket(),
+        'math': empty_bucket(),
+        'english': empty_bucket(),
+        'average': empty_bucket(),
+    }
+
+    for sid, subj_map in stu_scores.items():
+        for subj in ('chinese', 'math', 'english'):
+            if subj in subj_map:
+                idx = int(round(subj_map[subj]))
+                buckets[subj][idx] += 1
+        # Average score (calculated if there is any subject)
+        vals = [v for k, v in subj_map.items() if k in ('chinese', 'math', 'english')]
+        if vals:
+            avg = sum(vals) / len(vals)
+            idx = int(round(max(0.0, min(100.0, avg))))
+            buckets['average'][idx] += 1
+
+    return jsonify({
+        'labels': list(range(101)),
+        'chinese': buckets['chinese'],
+        'math': buckets['math'],
+        'english': buckets['english'],
+        'average': buckets['average']
+    }), 200
 
 
 # Dashboard summary (reducing multiple requests at the front end)
@@ -802,4 +871,56 @@ def get_class_grade_distribution(class_id, *args, **kwargs):
 @jwt_required
 @role_required('admin', 'teacher', 'student')
 def dashboard_summary(*args, **kwargs):
-    pass
+    current_user_id = kwargs.get('current_user_id')
+    current_user_role = kwargs.get('current_user_role')
+
+    class_count = 0
+    total_students = 0
+
+    if current_user_role in ('admin', 'teacher'):
+        # Class level
+        class_query = Class.query
+        if current_user_role == 'teacher':
+            class_query = class_query.filter_by(teacher_id=current_user_id)
+        classes = class_query.all()
+
+        class_count = len(classes)
+        total_students = sum([(c.students_count or 0) for c in classes])
+
+        # Pending tasks (only the teacher counts the ones they have assigned)
+        assignment_query = Assignment.query.filter_by(status='pending')
+        if current_user_role == 'teacher':
+            assignment_query = assignment_query.filter_by(teacher_id=current_user_id)
+        pending_assignments = assignment_query.count()
+
+    else:
+        # Student: Based on the statistics of one's own class and the school-wide announcements.
+        profile = StudentProfile.query.filter_by(user_id=current_user_id).first()
+        if profile and profile.class_id:
+            class_count = 1
+            class_obj = Class.query.get(profile.class_id)
+            total_students = class_obj.students_count if class_obj and class_obj.students_count else 0
+        else:
+            class_count = 0
+            total_students = 0
+        # Consistent with the Assignments page: Students see the total number of all pending assignments
+        pending_assignments = Assignment.query.filter_by(status='pending').count()
+
+    # Notice (Shared by All Characters)
+    total_notices = Notice.query.count()
+    recent = Notice.query.order_by(Notice.date.desc(), Notice.created_at.desc()).limit(5).all()
+    recent_notices = [{
+        'id': n.id,
+        'title': n.title,
+        'date': n.date.strftime('%Y-%m-%d') if n.date else None,
+        'priority': n.priority,
+        'category': n.category
+    } for n in recent]
+
+    return jsonify({
+        'class_count': class_count,
+        'total_students': total_students,
+        'pending_assignments': pending_assignments,
+        'total_notices': total_notices,
+        'recent_notices': recent_notices
+    }), 200
