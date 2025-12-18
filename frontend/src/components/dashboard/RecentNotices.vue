@@ -1,11 +1,13 @@
 ﻿<script setup>
 import { Bell } from 'lucide-vue-next'
 
-const notices = [
-  { id: 1, title: 'Final Exam Schedule Notice', date: '2024-01-15', type: 'important' },
-  { id: 2, title: 'Parent Meeting Invitation', date: '2024-01-12', type: 'normal' },
-  { id: 3, title: 'Winter Homework Checklist', date: '2024-01-10', type: 'normal' }
-]
+const props = defineProps({
+  items: { type: Array, default: () => [] }
+})
+
+const emit = defineEmits(['view'])
+
+const open = (notice) => emit('view', notice)
 </script>
 
 <template>
@@ -15,12 +17,19 @@ const notices = [
       <Bell :size="20" />
     </div>
     <div class="notices-list">
-      <div v-for="notice in notices" :key="notice.id" class="notice-item" :class="notice.type">
+      <div v-if="!items.length" class="notice-item">
+        <div class="notice-content">
+          <h4>No notices</h4>
+          <span class="notice-date">—</span>
+        </div>
+      </div>
+      <button v-for="notice in items" :key="notice.id" class="notice-item btn-like"
+        :class="notice.priority === 'important' ? 'important' : ''" @click="open(notice)">
         <div class="notice-content">
           <h4>{{ notice.title }}</h4>
           <span class="notice-date">{{ notice.date }}</span>
         </div>
-      </div>
+      </button>
     </div>
   </div>
 </template>
@@ -60,7 +69,8 @@ const notices = [
   border-radius: 0.5rem;
   background: var(--bg-body);
   border-left: 3px solid var(--border-color);
-  transition: transform 0.2s;
+  transition: transform 0.2s, background-color 0.2s;
+  text-align: left;
 }
 
 .notice-item:hover {
@@ -82,5 +92,10 @@ const notices = [
 .notice-date {
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+.btn-like {
+  border: none;
+  cursor: pointer;
 }
 </style>

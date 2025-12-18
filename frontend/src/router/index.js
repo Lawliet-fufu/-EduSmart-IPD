@@ -1,47 +1,84 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '../stores/auth.js'
 
 const routes = [
-    {
-        path: '/login',
-        name: 'Login',
-        component: () => import('../views/Login.vue')
-    },
-    {
-        path: '/teacher-dashboard',
-        name: 'TeacherDashboard',
-        component: () => import('../views/TeacherDashboard.vue'),
-        meta: { requiresAuth: true, role: 'teacher' }
-    },
-    {
-        path: '/student-dashboard',
-        name: 'StudentDashboard',
-        component: () => import('../views/StudentDashboard.vue'),
-        meta: { requiresAuth: true, role: 'student' }
-    },
-    {
-        path: '/',
-        redirect: '/login'
-    }
+  {
+    path: '/',
+    component: () => import('../views/HomeView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/login',
+    component: () => import('../views/LoginView.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/assignments',
+    component: () => import('../views/AssignmentsView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/notices',
+    component: () => import('../views/NoticesView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/class',
+    component: () => import('../views/ClassManagementView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/ai',
+    component: () => import('../views/AIAssistantView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/settings',
+    component: () => import('../views/SettingsView.vue'),
+    meta: { requiresAuth: true }
+  }
 ]
 
 const router = createRouter({
-    history: createWebHistory(),
-    routes
+  history: createWebHistory(),
+  routes
 })
 
-router.beforeEach((to, from, next) => {
-    // Placeholder for authentication logic
-    const isAuthenticated = false; // Replace with actual auth check
-    const userRole = null; // Replace with actual user role
-
-    if (to.meta.requiresAuth && !isAuthenticated) {
-        next('/login');
-    } else if (to.meta.role && to.meta.role !== userRole) {
-        // Handle unauthorized access
-        next('/login');
-    } else {
-        next();
+router.beforeEach((to, _from, next) => {
+  const authStore = useAuthStore()
+  
+  // 确保从 localStorage 恢复 token 和 user（如果存在）
+  const storedToken = localStorage.getItem('token')
+  const storedUser = localStorage.getItem('user')
+  
+  if (storedToken && !authStore.token) {
+    // 如果 localStorage 有 token 但 store 中没有，恢复它
+    authStore.token = storedToken
+    if (storedUser) {
+      try {
+        authStore.user = JSON.parse(storedUser)
+      } catch (e) {
+        console.error('Failed to parse user from localStorage:', e)
+        localStorage.removeItem('user')
+        localStorage.removeItem('token')
+      }
     }
+  }
+  
+  // 检查认证状态
+  const isAuthenticated = authStore.isAuthenticated || !!storedToken
+  
+  if (to.meta.requiresAuth) {
+    if (!isAuthenticated) {
+      next('/login')
+    } else {
+      next()
+    }
+  } else if (to.path === '/login' && isAuthenticated) {
+    next('/')
+  } else {
+    next()
+  }
 })
 
 export default router
