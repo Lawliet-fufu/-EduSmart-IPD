@@ -7,6 +7,7 @@ const chatContainer = ref(null)
 const uploadedFile = ref(null)
 const showMindMap = ref(false)
 const showAnalysis = ref(false)
+const analysisData = ref(null)
 
 const messages = ref([
   {
@@ -25,18 +26,73 @@ const quickQuestions = ref([
 ])
 
 // File upload handling
-const handleFileUpload = (event) => {
+const handleFileUpload = async (event) => {
   const file = event.target.files[0]
-  if (file) {
-    uploadedFile.value = file
-    // Simulate file analysis
-    const analysisMessage = {
+  if (!file) return
+
+  // Check file type
+  if (!file.name.endsWith('.docx')) {
+    const errorMsg = {
       id: messages.value.length + 1,
       type: 'ai',
-      content: `📄 File uploaded: "${file.name}"\n\nAnalyzing courseware...\n\n✅ Document analyzed successfully!\n- Pages: ${Math.floor(Math.random() * 50) + 10}\n- Topics detected: Math, Geometry, Problem Solving\n- Difficulty level: Grade 3-4\n\nWhat would you like me to do with this file?`,
+      content: '❌ Only .docx files are supported. Please upload a Word document.',
       timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     }
-    messages.value.push(analysisMessage)
+    messages.value.push(errorMsg)
+    scrollToBottom()
+    return
+  }
+
+  uploadedFile.value = file
+
+  // Show uploading message
+  const uploadingMsg = {
+    id: messages.value.length + 1,
+    type: 'ai',
+    content: `📄 Uploading "${file.name}"...\n\nAnalyzing courseware with AI...`,
+    timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  }
+  messages.value.push(uploadingMsg)
+  scrollToBottom()
+
+  try {
+    // Upload and analyze document
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await fetch('http://127.0.0.1:5000/api/ai/analyze-document', {
+      method: 'POST',
+      body: formData
+    })
+
+    if (!response.ok) {
+      throw new Error('Analysis failed')
+    }
+
+    const data = await response.json()
+    analysisData.value = data.analysis
+
+    // Show analysis results
+    showAnalysis.value = true
+
+    const successMsg = {
+      id: messages.value.length + 1,
+      type: 'ai',
+      content: `✅ Document analyzed successfully!\n\n📊 Analysis complete! Check the results above.`,
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    }
+    messages.value.push(successMsg)
+    scrollToBottom()
+
+  } catch (error) {
+    console.error('Error analyzing document:', error)
+    const errorMsg = {
+      id: messages.value.length + 1,
+      type: 'ai',
+      content: '❌ Sorry, I encountered an error analyzing the document. Please try again.',
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    }
+    messages.value.push(errorMsg)
     scrollToBottom()
   }
 }
@@ -202,8 +258,8 @@ const scrollToBottom = () => {
       </div>
     </div>
 
-    <!-- Analysis Panel (Demo) -->
-    <div v-if="showAnalysis" class="visualization-panel">
+    <!-- Analysis Panel (Real Data) -->
+    <div v-if="showAnalysis && analysisData" class="visualization-panel">
       <div class="panel-header">
         <FileText :size="20" />
         <h3>Courseware Analysis</h3>
@@ -214,27 +270,21 @@ const scrollToBottom = () => {
           <Lightbulb :size="24" class="card-icon" />
           <h4>Key Topics</h4>
           <ul>
-            <li>Introduction to Geometry</li>
-            <li>Basic Shapes</li>
-            <li>Measurement</li>
+            <li v-for="(topic, index) in analysisData.key_topics" :key="index">{{ topic }}</li>
           </ul>
         </div>
         <div class="analysis-card">
           <Brain :size="24" class="card-icon" />
           <h4>Learning Objectives</h4>
           <ul>
-            <li>Identify geometric shapes</li>
-            <li>Calculate area & perimeter</li>
-            <li>Apply concepts to problems</li>
+            <li v-for="(objective, index) in analysisData.learning_objectives" :key="index">{{ objective }}</li>
           </ul>
         </div>
         <div class="analysis-card">
           <FileText :size="24" class="card-icon" />
           <h4>Suggested Activities</h4>
           <ul>
-            <li>Shape scavenger hunt</li>
-            <li>Drawing exercises</li>
-            <li>Group projects</li>
+            <li v-for="(activity, index) in analysisData.suggested_activities" :key="index">{{ activity }}</li>
           </ul>
         </div>
       </div>
