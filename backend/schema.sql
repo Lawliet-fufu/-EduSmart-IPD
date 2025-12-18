@@ -116,3 +116,26 @@ REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE SET NULL,
 INDEX idx_assignments__class_id (class_id),
 INDEX idx_assignments__teacher_id (teacher_id)
 ) ENGINE=InnoDB;
+
+-- =====================
+-- student_profiles (1:1 relation with students in users)
+-- =====================
+CREATE TABLE IF NOT EXISTS student_profiles (
+profile_id       BIGINT AUTO_INCREMENT,
+user_id          BIGINT NOT NULL,
+class_id         BIGINT NULL,
+student_no       VARCHAR(50),
+status           ENUM('active','inactive') DEFAULT 'active',
+attendance_rate  DECIMAL(5,2) DEFAULT 0,
+avg_grade        DECIMAL(5,2) NULL,
+CONSTRAINT pk_student_profiles PRIMARY KEY (profile_id),
+CONSTRAINT uq_student_profiles__user UNIQUE (user_id),
+CONSTRAINT fk_student_profiles__user FOREIGN KEY (user_id)
+REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE,
+CONSTRAINT fk_student_profiles__class FOREIGN KEY (class_id)
+REFERENCES classes(class_id) ON UPDATE CASCADE ON DELETE SET NULL,
+-- Student number must be unique within a class
+UNIQUE KEY uq_student_profiles__class_studentno (class_id, student_no),
+INDEX idx_student_profiles__class_id (class_id),
+INDEX idx_student_profiles__user_id (user_id)
+) ENGINE=InnoDB;
