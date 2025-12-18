@@ -70,30 +70,41 @@ const showCoursewareAnalysis = () => {
 const sendMessage = async () => {
   if (!messageInput.value.trim()) return
 
+  const userQuery = messageInput.value
+  messageInput.value = ''
+
   const userMessage = {
     id: messages.value.length + 1,
     type: 'user',
-    content: messageInput.value,
+    content: userQuery,
     timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
   }
   messages.value.push(userMessage)
 
-  const userQuery = messageInput.value
-  messageInput.value = ''
-
   await nextTick()
   scrollToBottom()
 
-  setTimeout(() => {
+  try {
+    const aiResponseContent = await getAIResponse(userQuery)
+    
     const aiMessage = {
       id: messages.value.length + 1,
       type: 'ai',
-      content: getAIResponse(userQuery),
+      content: aiResponseContent,
       timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     }
     messages.value.push(aiMessage)
     scrollToBottom()
-  }, 1000)
+  } catch (error) {
+    const errorMessage = {
+      id: messages.value.length + 1,
+      type: 'ai',
+      content: 'Sorry, I encountered an error. Please try again.',
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    }
+    messages.value.push(errorMessage)
+    scrollToBottom()
+  }
 }
 
 const askQuickQuestion = (question) => {
@@ -101,21 +112,27 @@ const askQuickQuestion = (question) => {
   sendMessage()
 }
 
-const getAIResponse = (query) => {
-  const responses = {
-    default: 'I understand your question. As an AI teaching assistant, I can help you with lesson planning, student engagement strategies, and educational resources. Could you provide more details about what you need?',
-    engagement: 'To improve student engagement, try these strategies:\n\n1. Use interactive activities and games\n2. Incorporate technology and multimedia\n3. Encourage group discussions\n4. Provide real-world examples\n5. Give regular positive feedback',
-    math: 'For today\'s math lesson, consider these engaging activities:\n\n1. Math scavenger hunt\n2. Problem-solving challenges\n3. Interactive whiteboard exercises\n4. Peer tutoring sessions\n5. Hands-on manipulatives',
-    quiz: 'To create an effective quiz for Grade 3:\n\n1. Include 10-15 questions\n2. Mix multiple choice and short answer\n3. Focus on key concepts taught\n4. Add visual aids for clarity\n5. Include one bonus question for fun!',
-    online: 'Best practices for online teaching:\n\n1. Keep sessions interactive\n2. Use breakout rooms for group work\n3. Share screen for demonstrations\n4. Record sessions for review\n5. Check in with students regularly'
-  }
+// Call Backend API
+const getAIResponse = async (query) => {
+  try {
+    const response = await fetch('http://127.0.0.1:5000/api/ai/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message: query })
+    })
 
-  const lowerQuery = query.toLowerCase()
-  if (lowerQuery.includes('engagement')) return responses.engagement
-  if (lowerQuery.includes('math')) return responses.math
-  if (lowerQuery.includes('quiz')) return responses.quiz
-  if (lowerQuery.includes('online')) return responses.online
-  return responses.default
+    if (!response.ok) {
+      throw new Error('Network response was not ok')
+    }
+
+    const data = await response.json()
+    return data.response
+  } catch (error) {
+    console.error('Error fetching AI response:', error)
+    return "Sorry, the AI service is temporarily unavailable. Please try again later."
+  }
 }
 
 const scrollToBottom = () => {

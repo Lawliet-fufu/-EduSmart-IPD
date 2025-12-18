@@ -44,4 +44,7 @@ def create_app(config_name='default'):
     from .api import admin_mgmt as admin_mgmt_blueprint
     app.register_blueprint(admin_mgmt_blueprint, url_prefix='/api/admin')
 
+    from .api import ai_assistant as ai_blueprint
+    app.register_blueprint(ai_blueprint.ai, url_prefix='/api/ai')
+
     return app
