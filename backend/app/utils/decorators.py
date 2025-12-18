@@ -6,19 +6,19 @@ import traceback
 
 
 def jwt_required(f):
-    """JWT验证装饰器"""
+    """JWT Authentication Decorator"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         try:
             verify_jwt_in_request()
         except Exception as e:
-            # 捕获所有 JWT 相关错误（包括 NoAuthorizationError, JWTDecodeError 等）
+            # Capture all JWT-related errors (including NoAuthorizationError, JWTDecodeError, etc.)
             auth_header = request.headers.get('Authorization', 'Not found')
             print(f"JWT Error: {type(e).__name__}: {str(e)}")
             print(f"Authorization header: {auth_header}")
             print(f"Request path: {request.path}")
             print(f"Request method: {request.method}")
-            # 打印完整的错误堆栈（仅在开发环境）
+            # Print the complete error stack (only in the development environment)
             if hasattr(request, 'app') and request.app.config.get('DEBUG'):
                 print(traceback.format_exc())
             return jsonify({'message': 'Token is missing or invalid'}), 401
@@ -27,7 +27,7 @@ def jwt_required(f):
 
 
 def role_required(*allowed_roles):
-    """角色权限验证装饰器"""
+    """Role Permission Verification Decorator"""
     def decorator(f):
         @wraps(f)
         @jwt_required
@@ -39,7 +39,7 @@ def role_required(*allowed_roles):
                 if user_role not in allowed_roles:
                     return jsonify({'message': 'Insufficient permissions'}), 403
                 
-                # 将当前用户ID和角色注入到kwargs中，方便后续使用
+                # Inject the current user ID and role into kwargs to facilitate future usage.
                 # JWT identity is stored as string, convert to int for database queries
                 user_id_str = get_jwt_identity()
                 kwargs['current_user_id'] = int(user_id_str) if user_id_str else None
@@ -54,7 +54,7 @@ def role_required(*allowed_roles):
 
 
 def get_current_user():
-    """获取当前登录用户对象"""
+    """Get the current logged-in user object"""
     try:
         user_id_str = get_jwt_identity()
         if user_id_str:
