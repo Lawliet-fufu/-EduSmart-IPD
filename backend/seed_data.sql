@@ -249,3 +249,9 @@ JOIN (
 ) g ON g.student_id = sp.user_id
 SET sp.avg_grade = g.avg_score;
 
+-- Example assignments (only including Chinese/Math/English)
+INSERT INTO assignments (title, subject, description, due_date, status, class_id, teacher_id)
+VALUES
+('Math Homework - Chapter 5 Practice', 'math', 'Geometry fundamentals exercises', '2024-02-15', 'pending', 1, 2),
+('English Essay - My Dream', 'english', 'Write an essay about your dream', '2024-02-12', 'grading', 1, 2),
+('Chinese Reading Comprehension', 'chinese', 'Read the passage and answer the questions', '2024-02-18', 'pending', 1, 2);
