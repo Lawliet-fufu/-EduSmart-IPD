@@ -255,3 +255,7 @@ VALUES
 ('Math Homework - Chapter 5 Practice', 'math', 'Geometry fundamentals exercises', '2024-02-15', 'pending', 1, 2),
 ('English Essay - My Dream', 'english', 'Write an essay about your dream', '2024-02-12', 'grading', 1, 2),
 ('Chinese Reading Comprehension', 'chinese', 'Read the passage and answer the questions', '2024-02-18', 'pending', 1, 2);
+
+-- Initialize user preferences
+INSERT INTO user_preferences (user_id, dark_mode, language, notifications, email_alerts)
+SELECT user_id, 0, 'en', 1, 0 FROM users;

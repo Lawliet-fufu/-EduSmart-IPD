@@ -1,15 +1,16 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { User, Mail, Lock, Bell, Globe, Moon } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth.js'
+import api from '../api/index.js'
 
 const authStore = useAuthStore()
 
 // Settings state
 const profile = ref({
-  name: authStore.user?.name || 'Teacher Lawliet',
-  email: 'lawliet@edusmart.com',
-  role: authStore.user?.role || 'Admin'
+  name: authStore.user?.name || 'User',
+  email: authStore.user?.email || 'user@edusmart.com',
+  role: authStore.user?.role || 'User'
 })
 
 const preferences = ref({
@@ -19,8 +20,80 @@ const preferences = ref({
   language: 'en'
 })
 
-const saveSettings = () => {
-  alert('Settings saved successfully!')
+const isLoading = ref(false)
+const saveMessage = ref('')
+
+// Load preferences from backend on mount
+onMounted(async () => {
+  isLoading.value = true
+  try {
+    const response = await api.get('/auth/preferences')
+    if (response.data) {
+      preferences.value = {
+        notifications: response.data.notifications,
+        emailAlerts: response.data.email_alerts,
+        darkMode: response.data.dark_mode,
+        language: response.data.language
+      }
+      // Apply dark mode if enabled
+      if (preferences.value.darkMode) {
+        authStore.applyDarkMode(true)
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load preferences:', error)
+    // Fall back to localStorage
+    preferences.value = {
+      notifications: localStorage.getItem('pref_notifications') !== 'false',
+      emailAlerts: localStorage.getItem('pref_emailAlerts') === 'true',
+      darkMode: localStorage.getItem('pref_darkMode') === 'true',
+      language: localStorage.getItem('pref_language') || 'en'
+    }
+    // Apply dark mode if enabled in localStorage
+    if (preferences.value.darkMode) {
+      authStore.applyDarkMode(true)
+    }
+  } finally {
+    isLoading.value = false
+  }
+})
+
+// Watch for dark mode changes
+watch(() => preferences.value.darkMode, (newVal) => {
+  authStore.applyDarkMode(newVal)
+})
+
+// Watch for language changes
+watch(() => preferences.value.language, (newVal) => {
+  console.log('Language changed to:', newVal)
+  // This can be extended with actual i18n implementation
+})
+
+const saveSettings = async () => {
+  isLoading.value = true
+  saveMessage.value = ''
+  try {
+    await api.put('/auth/preferences', {
+      notifications: preferences.value.notifications,
+      emailAlerts: preferences.value.emailAlerts,
+      darkMode: preferences.value.darkMode,
+      language: preferences.value.language
+    })
+    saveMessage.value = 'Settings saved successfully!'
+    setTimeout(() => {
+      saveMessage.value = ''
+    }, 3000)
+  } catch (error) {
+    console.error('Failed to save preferences:', error)
+    saveMessage.value = 'Failed to save settings. Please try again.'
+    // Fall back to localStorage
+    localStorage.setItem('pref_notifications', preferences.value.notifications)
+    localStorage.setItem('pref_emailAlerts', preferences.value.emailAlerts)
+    localStorage.setItem('pref_darkMode', preferences.value.darkMode)
+    localStorage.setItem('pref_language', preferences.value.language)
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -137,11 +210,11 @@ const saveSettings = () => {
             <Moon :size="20" class="preference-icon" />
             <div>
               <h4>Dark Mode</h4>
-              <p>Switch to dark theme (Coming soon)</p>
+              <p>Switch to dark theme</p>
             </div>
           </div>
           <label class="toggle-switch">
-            <input v-model="preferences.darkMode" type="checkbox" disabled />
+            <input v-model="preferences.darkMode" type="checkbox" />
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -164,8 +237,11 @@ const saveSettings = () => {
 
     <!-- Save Button -->
     <div class="settings-actions">
-      <button @click="saveSettings" class="save-btn">
-        Save Changes
+      <div v-if="saveMessage" class="save-message" :class="{ 'error': saveMessage.includes('Failed') }">
+        {{ saveMessage }}
+      </div>
+      <button @click="saveSettings" class="save-btn" :disabled="isLoading">
+        {{ isLoading ? 'Saving...' : 'Save Changes' }}
       </button>
     </div>
   </div>
@@ -346,15 +422,15 @@ const saveSettings = () => {
   transition: 0.3s;
 }
 
-.toggle-switch input:checked + .toggle-slider {
+.toggle-switch input:checked+.toggle-slider {
   background-color: var(--primary);
 }
 
-.toggle-switch input:checked + .toggle-slider:before {
+.toggle-switch input:checked+.toggle-slider:before {
   transform: translateX(24px);
 }
 
-.toggle-switch input:disabled + .toggle-slider {
+.toggle-switch input:disabled+.toggle-slider {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -377,8 +453,24 @@ const saveSettings = () => {
 
 .settings-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 1rem;
   margin-top: 2rem;
+}
+
+.save-message {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background-color: #d1fae5;
+  color: #065f46;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.save-message.error {
+  background-color: #fee2e2;
+  color: #991b1b;
 }
 
 .save-btn {
@@ -393,9 +485,14 @@ const saveSettings = () => {
   cursor: pointer;
 }
 
-.save-btn:hover {
+.save-btn:hover:not(:disabled) {
   background-color: var(--primary-hover);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

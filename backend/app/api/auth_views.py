@@ -77,13 +77,51 @@ def me():
 @auth.route('/preferences', methods=['GET'])
 @jwt_required
 def get_preferences():
-    pass
+    user = get_current_user()
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+
+    prefs = UserPreferences.query.filter_by(user_id=user.id).first()
+    if not prefs:
+        # create default preferences
+        prefs = UserPreferences(user_id=user.id)
+        db.session.add(prefs)
+        db.session.commit()
+
+    return jsonify({
+        'dark_mode': prefs.dark_mode,
+        'language': prefs.language,
+        'notifications': prefs.notifications,
+        'email_alerts': prefs.email_alerts,
+    }), 200
 
 
 @auth.route('/preferences', methods=['PUT'])
 @jwt_required
 def update_preferences():
-    pass
+    user = get_current_user()
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+
+    data = request.get_json() or {}
+
+    prefs = UserPreferences.query.filter_by(user_id=user.id).first()
+    if not prefs:
+        prefs = UserPreferences(user_id=user.id)
+        db.session.add(prefs)
+
+    if 'darkMode' in data:
+        prefs.dark_mode = bool(data.get('darkMode'))
+    if 'language' in data:
+        prefs.language = str(data.get('language'))[:10]
+    if 'notifications' in data:
+        prefs.notifications = bool(data.get('notifications'))
+    if 'emailAlerts' in data:
+        prefs.email_alerts = bool(data.get('emailAlerts'))
+
+    db.session.commit()
+
+    return jsonify({'message': 'Preferences updated successfully'}), 200
 
 
 def _verify_password(stored_hash: str, raw_password: str) -> bool:
