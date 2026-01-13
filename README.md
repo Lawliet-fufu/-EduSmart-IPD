@@ -67,6 +67,13 @@ EduSmart is a modern educational management platform built with **Vue 3** and **
 
 #### 1. Clone the repository
 
+**GitHub (International):**
+```bash
+git clone https://github.com/Lawliet-fufu/EduSmart-IPD.git
+cd EduSmart-IPD
+```
+
+**Gitee (中国大陆):**
 ```bash
 git clone https://gitee.com/zy-cdut/2025-l5-s6-group3.git
 cd 2025-l5-s6-group3
@@ -86,6 +93,11 @@ Access at: `http://localhost:5173`
 
 ```bash
 cd backend
+
+# Configure environment variables
+cp .env.example .env
+# Edit .env with your actual database credentials and API keys
+
 pip install -r requirements.txt
 python run.py
 ```
