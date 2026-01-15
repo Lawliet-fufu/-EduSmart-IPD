@@ -2,9 +2,11 @@
 import { ref, watch, onMounted } from 'vue'
 import { User, Mail, Lock, Bell, Globe, Moon } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth.js'
+import { useLocaleStore } from '../stores/locale.js'
 import api from '../api/index.js'
 
 const authStore = useAuthStore()
+const localeStore = useLocaleStore()
 
 // Settings state
 const profile = ref({
@@ -17,7 +19,7 @@ const preferences = ref({
   notifications: true,
   emailAlerts: false,
   darkMode: false,
-  language: 'en'
+  language: localeStore.locale
 })
 
 const isLoading = ref(false)
@@ -35,6 +37,8 @@ onMounted(async () => {
         darkMode: response.data.dark_mode,
         language: response.data.language
       }
+      // Sync locale store
+      localeStore.setLocale(preferences.value.language)
       // Apply dark mode if enabled
       if (preferences.value.darkMode) {
         authStore.applyDarkMode(true)
@@ -47,7 +51,7 @@ onMounted(async () => {
       notifications: localStorage.getItem('pref_notifications') !== 'false',
       emailAlerts: localStorage.getItem('pref_emailAlerts') === 'true',
       darkMode: localStorage.getItem('pref_darkMode') === 'true',
-      language: localStorage.getItem('pref_language') || 'en'
+      language: localeStore.locale
     }
     // Apply dark mode if enabled in localStorage
     if (preferences.value.darkMode) {
@@ -65,8 +69,7 @@ watch(() => preferences.value.darkMode, (newVal) => {
 
 // Watch for language changes
 watch(() => preferences.value.language, (newVal) => {
-  console.log('Language changed to:', newVal)
-  // This can be extended with actual i18n implementation
+  localeStore.setLocale(newVal)
 })
 
 const saveSettings = async () => {
@@ -79,13 +82,13 @@ const saveSettings = async () => {
       darkMode: preferences.value.darkMode,
       language: preferences.value.language
     })
-    saveMessage.value = 'Settings saved successfully!'
+    saveMessage.value = localeStore.t.value('settings.saveSuccess')
     setTimeout(() => {
       saveMessage.value = ''
     }, 3000)
   } catch (error) {
     console.error('Failed to save preferences:', error)
-    saveMessage.value = 'Failed to save settings. Please try again.'
+    saveMessage.value = localeStore.t.value('settings.saveFailed')
     // Fall back to localStorage
     localStorage.setItem('pref_notifications', preferences.value.notifications)
     localStorage.setItem('pref_emailAlerts', preferences.value.emailAlerts)
@@ -100,19 +103,19 @@ const saveSettings = async () => {
 <template>
   <div class="settings-container">
     <div class="settings-header">
-      <h1>Settings</h1>
-      <p>Manage your account and preferences</p>
+      <h1>{{ localeStore.t.value('settings.title') }}</h1>
+      <p>{{ localeStore.t.value('settings.description') }}</p>
     </div>
 
     <!-- Profile Section -->
     <div class="settings-section">
       <div class="section-header">
         <User :size="20" />
-        <h2>Profile Information</h2>
+        <h2>{{ localeStore.t.value('settings.profile') }}</h2>
       </div>
       <div class="section-content">
         <div class="form-group">
-          <label>Full Name</label>
+          <label>{{ localeStore.t.value('settings.fullName') }}</label>
           <div class="input-wrapper">
             <User :size="18" class="input-icon" />
             <input v-model="profile.name" type="text" />
@@ -120,7 +123,7 @@ const saveSettings = async () => {
         </div>
 
         <div class="form-group">
-          <label>Email Address</label>
+          <label>{{ localeStore.t.value('settings.email') }}</label>
           <div class="input-wrapper">
             <Mail :size="18" class="input-icon" />
             <input v-model="profile.email" type="email" />
@@ -128,7 +131,7 @@ const saveSettings = async () => {
         </div>
 
         <div class="form-group">
-          <label>Role</label>
+          <label>{{ localeStore.t.value('settings.role') }}</label>
           <div class="input-wrapper">
             <User :size="18" class="input-icon" />
             <input v-model="profile.role" type="text" readonly />
@@ -141,11 +144,11 @@ const saveSettings = async () => {
     <div class="settings-section">
       <div class="section-header">
         <Lock :size="20" />
-        <h2>Security</h2>
+        <h2>{{ localeStore.t.value('settings.security') }}</h2>
       </div>
       <div class="section-content">
         <div class="form-group">
-          <label>Current Password</label>
+          <label>{{ localeStore.t.value('settings.currentPassword') }}</label>
           <div class="input-wrapper">
             <Lock :size="18" class="input-icon" />
             <input type="password" placeholder="••••••••" />
@@ -153,7 +156,7 @@ const saveSettings = async () => {
         </div>
 
         <div class="form-group">
-          <label>New Password</label>
+          <label>{{ localeStore.t.value('settings.newPassword') }}</label>
           <div class="input-wrapper">
             <Lock :size="18" class="input-icon" />
             <input type="password" placeholder="••••••••" />
@@ -161,7 +164,7 @@ const saveSettings = async () => {
         </div>
 
         <div class="form-group">
-          <label>Confirm New Password</label>
+          <label>{{ localeStore.t.value('settings.confirmPassword') }}</label>
           <div class="input-wrapper">
             <Lock :size="18" class="input-icon" />
             <input type="password" placeholder="••••••••" />
@@ -174,15 +177,15 @@ const saveSettings = async () => {
     <div class="settings-section">
       <div class="section-header">
         <Bell :size="20" />
-        <h2>Notifications & Preferences</h2>
+        <h2>{{ localeStore.t.value('settings.preferences') }}</h2>
       </div>
       <div class="section-content">
         <div class="preference-item">
           <div class="preference-info">
             <Bell :size="20" class="preference-icon" />
             <div>
-              <h4>Push Notifications</h4>
-              <p>Receive notifications about important updates</p>
+              <h4>{{ localeStore.t.value('settings.pushNotifications') }}</h4>
+              <p>{{ localeStore.t.value('settings.pushNotificationsDesc') }}</p>
             </div>
           </div>
           <label class="toggle-switch">
@@ -195,8 +198,8 @@ const saveSettings = async () => {
           <div class="preference-info">
             <Mail :size="20" class="preference-icon" />
             <div>
-              <h4>Email Alerts</h4>
-              <p>Get email notifications for new assignments</p>
+              <h4>{{ localeStore.t.value('settings.emailAlerts') }}</h4>
+              <p>{{ localeStore.t.value('settings.emailAlertsDesc') }}</p>
             </div>
           </div>
           <label class="toggle-switch">
@@ -209,8 +212,8 @@ const saveSettings = async () => {
           <div class="preference-info">
             <Moon :size="20" class="preference-icon" />
             <div>
-              <h4>Dark Mode</h4>
-              <p>Switch to dark theme</p>
+              <h4>{{ localeStore.t.value('settings.darkMode') }}</h4>
+              <p>{{ localeStore.t.value('settings.darkModeDesc') }}</p>
             </div>
           </div>
           <label class="toggle-switch">
@@ -223,8 +226,8 @@ const saveSettings = async () => {
           <div class="preference-info">
             <Globe :size="20" class="preference-icon" />
             <div>
-              <h4>Language</h4>
-              <p>Select your preferred language</p>
+              <h4>{{ localeStore.t.value('settings.language') }}</h4>
+              <p>{{ localeStore.t.value('settings.languageDesc') }}</p>
             </div>
           </div>
           <select v-model="preferences.language" class="language-select">
@@ -237,11 +240,11 @@ const saveSettings = async () => {
 
     <!-- Save Button -->
     <div class="settings-actions">
-      <div v-if="saveMessage" class="save-message" :class="{ 'error': saveMessage.includes('Failed') }">
+      <div v-if="saveMessage" class="save-message" :class="{ 'error': saveMessage.includes('Failed') || saveMessage.includes('失败') }">
         {{ saveMessage }}
       </div>
       <button @click="saveSettings" class="save-btn" :disabled="isLoading">
-        {{ isLoading ? 'Saving...' : 'Save Changes' }}
+        {{ isLoading ? localeStore.t.value('settings.saving') : localeStore.t.value('settings.saveChanges') }}
       </button>
     </div>
   </div>
